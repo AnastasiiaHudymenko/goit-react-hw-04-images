@@ -20,7 +20,6 @@ export const App = () => {
 
   useEffect(() => {
     if (!search) {
-      console.log('no render');
       return;
     }
     setLoader(true);

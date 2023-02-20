@@ -18,12 +18,14 @@ export const Modal = ({ onClose, children }) => {
   };
 
   useEffect(() => {
+    console.log('работаю когда открывается ');
     window.addEventListener('keydown', handleKeyDown);
 
     return () => {
+      console.log('выпоняюсь когда окно сворачиывется ');
       window.removeEventListener('keydown', handleKeyDown);
     };
-  }, []);
+  });
 
   return createPortal(
     <div className="Overlay" onClick={handlBackdrop}>
