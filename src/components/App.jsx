@@ -1,4 +1,4 @@
-import React from 'react';
+import { useState, useEffect } from 'react';
 import { ToastContainer } from 'react-toastify';
 import { toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
@@ -9,93 +9,74 @@ import { LoaderIcon } from './Loader/Loader';
 import { Button } from './Button/Button';
 import { Modal } from './Modal/Modal';
 
-export class App extends React.Component {
-  state = {
-    search: '',
-    page: 1,
-    images: [],
-    loader: false,
-    showModal: false,
-    currentImg: '',
-    totalHits: 0,
-  };
+export const App = () => {
+  const [search, setSearch] = useState('');
+  const [page, setPage] = useState(1);
+  const [images, setImages] = useState([]);
+  const [loader, setLoader] = useState(false);
+  const [showModal, setShowModal] = useState(false);
+  const [currentImg, setCurrentImg] = useState('');
+  const [totalHits, setTotalHits] = useState(0);
 
-  async componentDidUpdate(_, prevState) {
-    const { search: prevSearch, page: prevPage } = prevState;
-    const { search, page } = this.state;
-
-    if (prevSearch !== search || prevPage !== page) {
+  useEffect(() => {
+    if (!search) {
+      return;
+    }
+    setLoader(true);
+    getImage(search, page).then(data => {
       try {
-        this.setState({ loader: true });
-        const respons = await getImage(search, page);
-        const imagesList = respons.data;
-
-        if (!imagesList.hits.length) {
-          this.setState({ loader: false });
+        if (!data.hits.length) {
+          setLoader(false);
           return toast.error('Enter a valid search');
         }
-
-        this.setState(({ images }) => ({
-          images: [...images, ...imagesList.hits],
-        }));
-        this.setState({ loader: false });
+        setImages(state => [...state, ...data.hits]);
+        setLoader(false);
         if (page === 1) {
-          this.setState({ totalHits: imagesList.totalHits });
+          setTotalHits(data.totalHits);
         }
-        if (prevPage < page) {
-          this.setState(({ totalHits }) => ({ totalHits: totalHits - 12 }));
+        if (page > 1) {
+          setTotalHits(state => state - 12);
         }
       } catch (error) {
-        this.setState({ loader: false });
+        setLoader(false);
         return toast.error('Please try later server not responding');
       }
-    }
-  }
+    });
+  }, [search, page]);
 
-  togleModal = () => {
-    this.setState(({ showModal }) => ({ showModal: !showModal }));
+  const togleModal = () => {
+    setShowModal(state => !state);
   };
 
-  onClick = ({ target: { src } }) => {
-    const { images } = this.state;
+  const onClick = ({ target: { src } }) => {
     const currentImg = images.find(el => el.webformatURL === src);
-    this.setState({ currentImg: currentImg.largeImageURL });
-    this.togleModal();
+    setCurrentImg(currentImg.largeImageURL);
+    togleModal();
   };
 
-  handlSearch = search => {
-    this.setState({ page: 1, images: [] });
-    this.setState(search);
+  const handlSearch = ({ search }) => {
+    setPage(1);
+    setImages([]);
+    setSearch(search);
   };
 
-  handlClickLoadMore = () => {
-    this.setState(({ page }) => ({ page: page + 1 }));
+  const handlClickLoadMore = () => {
+    setPage(state => state + 1);
   };
-
-  render() {
-    const {
-      handlSearch,
-      onClick,
-      handlClickLoadMore,
-      togleModal,
-      state: { images, loader, search, showModal, currentImg, totalHits },
-    } = this;
-
-    return (
-      <div className="App">
-        <Searchbar onSubmit={handlSearch} />
-        <ImageGallery children images={images} onClick={() => onClick} />
-        {loader && <LoaderIcon />}
-        {search && images.length !== 0 && !loader && totalHits > 12 && (
-          <Button onClick={handlClickLoadMore} />
-        )}
-        {showModal && (
-          <Modal onClose={togleModal}>
-            <img src={currentImg} alt="" />
-          </Modal>
-        )}
-        <ToastContainer autoClose={3000} position="top-center" theme="dark" />
-      </div>
-    );
-  }
-}
+  return (
+    <div className="App">
+      <Searchbar onSubmit={handlSearch} />
+      <ImageGallery children images={images} onClick={() => onClick} />
+      {loader && <LoaderIcon />}
+      {search && images.length !== 0 && !loader && totalHits > 12 && (
+        <Button onClick={handlClickLoadMore} />
+      )}
+      {showModal && (
+        <Modal onClose={togleModal}>
+          <img src={currentImg} alt="" />
+        </Modal>
+      )}
+      <ToastContainer autoClose={3000} position="top-center" theme="dark" />
+    </div>
+  );
+};
